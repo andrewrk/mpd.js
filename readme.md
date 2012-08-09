@@ -2,16 +2,21 @@ Fast, predictive, event-based, and connection agnostic JavaScript interface to
 [music player daemon](http://musicpd.org).
 
 To inherit from this class:
+---------------------------
 
-  Define these methods:
-    rawSend: (data) => # send data untouched to mpd
+* Define these methods:
+  
+  - `rawSend: (data) => # send data untouched to mpd`
  
-  Call these methods:
-    receive: (data) => # when you get data from mpd
-    handleConnectionStart: => # when you first connect
+* Call these methods:
+    
+  - `receive: (data) => # when you get data from mpd`
+  - `handleConnectionStart: => # when you first connect`
 
 API:
+----
 
+```
   library structure: {
     artists: [sorted list of {artist structure}],
     track_table: {"track file" => {track structure}},
@@ -63,7 +68,9 @@ API:
     current_item: {playlist item structure},
   }
   search_results structure mimics library structure
+```
 
 Developing mpd.js
+-----------------
 
-  npm run dev
+  `npm run dev`
