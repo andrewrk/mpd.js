@@ -2,9 +2,14 @@
   "name": "mpd",
   "version": "0.0.0",
   "description": "javascript interface to music player daemon that works in node.js and the browser",
-  "main": "index.js",
+  "main": "lib/mpd.js",
+  "engines": {
+    "node": "~0.8.6"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "npm install && coco -wco lib/ src/",
+    "build": "npm install && coco -co lib/ src/",
+    "clean": "rm -rf lib/"
   },
   "repository": {
     "type": "git",
@@ -17,5 +22,8 @@
     "daemon"
   ],
   "author": "Andrew Kelley",
-  "license": "BSD"
+  "license": "BSD",
+  "devDependencies": {
+    "coco": "~0.8.0"
+  }
 }
