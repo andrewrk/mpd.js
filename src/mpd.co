@@ -119,7 +119,7 @@ class Mpd extends EventEmitter
     # maps mpd subsystems to our function to call which will update ourself
     @updateFuncs =
       database: ~> # the song database has been modified after update.
-        @haveFileListCache = false
+        @have_file_list_cache = false
         @updateLibrary()
       update: noop # a database update has started or finished. If the database was modified during the update, the database event is also emitted.
       stored_playlist: noop # a stored playlist has been modified, renamed, created or deleted
@@ -159,7 +159,7 @@ class Mpd extends EventEmitter
     @sendCommand 'listallinfo', !(msg) ~>
       tracks = @mpdTracksToTrackObjects @parseMpdTracks msg
       @buildArtistAlbumTree tracks, @library
-      @haveFileListCache = true
+      @have_file_list_cache = true
       # in case the user has a search open, we'll apply their search again.
       last_query = @last_query
       # reset last query so that search is forced to run again
@@ -462,13 +462,9 @@ class Mpd extends EventEmitter
 
   ######################### private #####################
 
-  handleMessage: !(msg) ->
-    handler = @msgHandlerQueue.shift()
-    @debugMsgConsole?.log "get: #{handler.debug_id}: " + JSON.stringify(msg)
+  handleMessage: !(err, msg) ->
+    handler = @msg_handler_queue.shift()
     handler.cb(msg) if msg?
-  send: !(msg) ->
-    @debugMsgConsole?.log "send: #{@msgHandlerQueue[@msgHandlerQueue.length - 1]?.debug_id ? -1}: " + JSON.stringify(msg)
-    @rawSend msg
 
   receive: !(data) ->
     @buffer += data
@@ -481,13 +477,12 @@ class Mpd extends EventEmitter
       [line, code, str] = m
       if code is "ACK"
         @emit 'error', str
-        # flush the handler
-        @handleMessage null
+        @handleMessage str, null
       else if line.indexOf("OK MPD") is 0
         # new connection
         @emit 'connect'
       else
-        @handleMessage msg
+        @handleMessage null, msg
       @buffer = @buffer.substring(msg.length+line.length+1)
 
   handleIdleResults: !(msg) ->
@@ -642,7 +637,7 @@ class Mpd extends EventEmitter
     library.artist_table = artist_table
 
   sendWithCallback: !(cmd, cb=noop) ->
-    @msgHandlerQueue.push do
+    @msg_handler_queue.push do
       debug_id: @msgCounter++
       cb: cb
     @send cmd + "\n"
@@ -650,7 +645,7 @@ class Mpd extends EventEmitter
   handleIdleResultsLoop: !(msg) ->
     @handleIdleResults(msg)
     # if we have nothing else to do, idle.
-    if @msgHandlerQueue.length is 0
+    if @msg_handler_queue.length is 0
       @sendWithCallback "idle", @~handleIdleResultsLoop
 
   fixPlaylistPosCache: !-> item.pos = i for item, i of @playlist.item_list
@@ -658,16 +653,15 @@ class Mpd extends EventEmitter
   # clear state so we can start over with new mpd connection
   resetServerState: !->
     @buffer = ""
-    @msgHandlerQueue = []
+    @msg_handler_queue = []
 
     # assign to console to enable message passing debugging
-    @debugMsgConsole = null #console
     @msgCounter = 0
 
     # whether we've sent the idle command to mpd
     @idling = false
 
-    @haveFileListCache = false
+    @have_file_list_cache = false
 
     # cache of library data from mpd. See comment at top of this file
     @library =
@@ -680,7 +674,7 @@ class Mpd extends EventEmitter
       current_item: null
 
   queueRandomTracksCommands: (n) ->
-    if not @haveFileListCache
+    if not @have_file_list_cache
       return []
     ("addid \"#{qEscape(file)}\"" for file of pickNRandomProps(@library.track_table, n))
 

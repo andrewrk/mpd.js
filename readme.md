@@ -6,7 +6,7 @@ To inherit from this class:
 
 * Define these methods:
   
-  - `rawSend: (data) => # send data untouched to mpd`
+  - `send: (data) => # send data untouched to mpd`
  
 * Call these methods:
     
