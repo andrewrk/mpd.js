@@ -1,3 +1,6 @@
+Fast, predictive, event-based, and connection agnostic JavaScript interface to
+[music player daemon](http://musicpd.org).
+
 To inherit from this class:
 
   Define these methods:
@@ -60,3 +63,7 @@ API:
     current_item: {playlist item structure},
   }
   search_results structure mimics library structure
+
+Developing mpd.js
+
+  npm run dev

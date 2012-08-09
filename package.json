@@ -1,10 +1,10 @@
 {
   "name": "mpd",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "javascript interface to music player daemon that works in node.js and the browser",
   "main": "lib/mpd.js",
   "engines": {
-    "node": "~0.8.6"
+    "node": "~0.8.0"
   },
   "scripts": {
     "dev": "npm install && coco -wco lib/ src/",
