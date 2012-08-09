@@ -141,9 +141,9 @@ class Mpd extends EventEmitter
 
   handleConnectionStart: !->
     @sendCommand "subscribe Status"
-    @updateLibrary()
     @updateStatus()
     @updatePlaylist()
+    @updateLibrary()
 
   sendCommand: !(command, callback=noop) ->
     @send "noidle\n" if @idling
