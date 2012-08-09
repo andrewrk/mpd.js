@@ -1,0 +1,21 @@
+{
+  "name": "mpd",
+  "version": "0.0.0",
+  "description": "javascript interface to music player daemon that works in node.js and the browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:superjoe30/node-mpd.git"
+  },
+  "keywords": [
+    "mpd",
+    "music",
+    "player",
+    "daemon"
+  ],
+  "author": "Andrew Kelley",
+  "license": "BSD"
+}
