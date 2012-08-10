@@ -1,6 +1,6 @@
 {
   "name": "mpd",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "javascript interface to music player daemon that works in node.js and the browser",
   "main": "lib/mpd.js",
   "engines": {
