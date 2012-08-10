@@ -112,6 +112,7 @@ class Mpd extends EventEmitter
 
   ######################### public #####################
   ~>
+    super()
     @resetServerState()
 
     @event_handlers = {}
@@ -156,7 +157,8 @@ class Mpd extends EventEmitter
     @sendCommand "command_list_begin\n#{command_list.join("\n")}\ncommand_list_end", callback
 
   updateLibrary: !->
-    @sendCommand 'listallinfo', !(msg) ~>
+    @sendCommand 'listallinfo', !(err, msg) ~>
+      if err then throw err
       tracks = @mpdTracksToTrackObjects @parseMpdTracks msg
       @buildArtistAlbumTree tracks, @library
       @have_file_list_cache = true
@@ -167,7 +169,8 @@ class Mpd extends EventEmitter
       @search last_query
 
   updatePlaylist: !(callback=noop) ->
-    @sendCommand "playlistinfo", !(msg) ~>
+    @sendCommand "playlistinfo", !(err, msg) ~>
+      return callback(err) if err
       mpd_tracks = @parseMpdTracks msg
       @clearPlaylist()
       for mpd_track of mpd_tracks
@@ -189,12 +192,14 @@ class Mpd extends EventEmitter
         callback()
       else
         # we need a status update before raising a playlist update event
-        @updateStatus !~>
-          callback()
+        @updateStatus !(err) ~>
+          return callback(err) if err
           @emit 'playlistupdate'
+          callback()
 
   updateStatus: !(callback=noop) ->
-    @sendCommand "status", !(msg) ~>
+    @sendCommand "status", !(err, msg) ~>
+      throw err if err
       # no dict comprehensions :(
       # https://github.com/satyr/coco/issues/102
       o = {}
@@ -220,7 +225,9 @@ class Mpd extends EventEmitter
         # add a field for the start date of the current track
         @status.track_start_date = elapsedToDate(@status.elapsed)
 
-    @sendCommand "currentsong", !(msg) ~>
+    @sendCommand "currentsong", !(err, msg) ~>
+      return callback(err) if err
+
       mpd_tracks = @parseMpdTracks msg
       if mpd_tracks.length is 0
         # no current song
@@ -229,7 +236,7 @@ class Mpd extends EventEmitter
         @emit 'statusupdate'
         return
 
-      # there's either 0 or 1
+      throw "error" if mpd_tracks.length not of [0, 1]
       for mpd_track of mpd_tracks
         id = parseInt(mpd_track.Id)
         pos = parseInt(mpd_track.Pos)
@@ -247,16 +254,17 @@ class Mpd extends EventEmitter
             id: id
             pos: pos
             track: @library.track_table[mpd_track.file]
-          @updatePlaylist !~>
-            callback()
+          @updatePlaylist !(err) ~>
+            return callback(err) if err
             @emit 'statusupdate'
+            callback()
 
   # puts the search results in search_results
   search: !(query) ->
     query = trim(query)
     if query.length is 0
       @search_results = @library
-      @emit 'libraryupdate'
+      @emit \libraryupdate
       @last_query = query
       return
     words = query.toLowerCase().split(/\s+/)
@@ -273,7 +281,7 @@ class Mpd extends EventEmitter
       result.push track if is_match
     # zip results into album
     @buildArtistAlbumTree result, @search_results = {}
-    @emit 'libraryupdate'
+    @emit \libraryupdate
 
   queueRandomTracks: !(n) ->
     @sendCommands @queueRandomTracksCommands n
@@ -288,7 +296,7 @@ class Mpd extends EventEmitter
     @playlist.item_list.splice pos, 0, ...items
     @fixPlaylistPosCache()
 
-    @sendCommands cmds, (msg) ~>
+    @sendCommands cmds, !(err, msg) ~>
       for line, i of msg.split("\n")
         index = files.length - 1 - i
         item_id = parseInt(line.substring(4))
@@ -450,12 +458,13 @@ class Mpd extends EventEmitter
     @emit 'statusupdate'
 
   getFileInfo: !(file, cb=noop) ->
-    @sendCommand "lsinfo \"#{qEscape(file)}\"", !(msg) ~>
+    @sendCommand "lsinfo \"#{qEscape(file)}\"", !(err, msg) ~>
+      return cb(err) if err
       [track] = @mpdTracksToTrackObjects @parseMpdTracks msg
       cb track
 
-  authenticate: !(password) ->
-    @sendCommand "password \"#{qEscape(password)}\""
+  authenticate: !(password, callback) ->
+    @sendCommand "password \"#{qEscape(password)}\"", !(err) ~> callback(err)
 
   scanFiles: !(files) ->
     @sendCommands ("update \"#{qEscape(file)}\"" for file of files)
@@ -464,7 +473,7 @@ class Mpd extends EventEmitter
 
   handleMessage: !(err, msg) ->
     handler = @msg_handler_queue.shift()
-    handler.cb(msg) if msg?
+    handler(err, msg)
 
   receive: !(data) ->
     @buffer += data
@@ -477,7 +486,7 @@ class Mpd extends EventEmitter
       [line, code, str] = m
       if code is "ACK"
         @emit 'error', str
-        @handleMessage str, null
+        @handleMessage str
       else if line.indexOf("OK MPD") is 0
         # new connection
         @emit 'connect'
@@ -637,12 +646,11 @@ class Mpd extends EventEmitter
     library.artist_table = artist_table
 
   sendWithCallback: !(cmd, cb=noop) ->
-    @msg_handler_queue.push do
-      debug_id: @msgCounter++
-      cb: cb
-    @send cmd + "\n"
+    @msg_handler_queue.push cb
+    @send "#cmd\n"
 
-  handleIdleResultsLoop: !(msg) ->
+  handleIdleResultsLoop: !(err, msg) ->
+    if err then throw err
     @handleIdleResults(msg)
     # if we have nothing else to do, idle.
     if @msg_handler_queue.length is 0
@@ -654,9 +662,6 @@ class Mpd extends EventEmitter
   resetServerState: !->
     @buffer = ""
     @msg_handler_queue = []
-
-    # assign to console to enable message passing debugging
-    @msgCounter = 0
 
     # whether we've sent the idle command to mpd
     @idling = false
