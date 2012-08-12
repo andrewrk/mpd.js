@@ -388,9 +388,10 @@ class Mpd extends EventEmitter
     @sendCommands cmds, !(err, msg) ~>
       return callback(err) if err
       for line, i of msg.split("\n")
+        continue unless line
         index = files.length - 1 - i
         item_id = parseInt(line.substring(4))
-        items[index] = item_id
+        items[index].id = item_id
       callback(null, items)
 
     @emit 'playlistupdate'
