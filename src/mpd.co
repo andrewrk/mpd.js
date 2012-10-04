@@ -219,7 +219,6 @@ class Mpd extends EventEmitter
     @search_results.artist_table[@artistKey(artist_name)].albums
 
   handleConnectionStart: !->
-    @sendCommand "subscribe Status"
     @updateLibrary()
     @updateStatus()
     @updatePlaylist()
