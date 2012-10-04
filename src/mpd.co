@@ -537,7 +537,11 @@ class Mpd extends EventEmitter
 
   getFileInfo: !(file, cb=noop) ->
     @sendCommand "lsinfo \"#{qEscape(file)}\"", !(err, msg) ~>
-      return cb(err) if err
+      if err
+        if err is " [50@0] {lsinfo} directory not found"
+          # mpd <0.17
+          return cb null, null
+        return cb(err) if err
       [track] = @mpdTracksToTrackObjects @parseMpdTracks msg
       cb null, track
 
