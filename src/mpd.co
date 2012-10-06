@@ -418,11 +418,23 @@ class Mpd extends EventEmitter
       @emit 'statusupdate'
 
   next: !->
-    @sendCommand "next"
+    # if mpd is stopped, it will ignore our request. so we must play, then skip, then stop.
+    if @status.state is "stop"
+      @sendCommand "play"
+      @sendCommand "next"
+      @sendCommand "stop"
+    else
+      @sendCommand "next"
     @anticipateSkip 1
 
   prev: !->
-    @sendCommand "previous"
+    # if mpd is stopped, it will ignore our request. so we must play, then skip, then stop.
+    if @status.state is "stop"
+      @sendCommand "play"
+      @sendCommand "previous"
+      @sendCommand "stop"
+    else
+      @sendCommand "previous"
     @anticipateSkip -1
 
   playId: !(track_id) ->
