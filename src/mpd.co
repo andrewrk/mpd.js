@@ -1,5 +1,5 @@
 ######################### private static #####################
-const diacritics_removal_map = [
+const DIACRITICS_REMOVAL_MAP = [
     {'base':'A', 'regex':/[\u0041\u24B6\uFF21\u00C0\u00C1\u00C2\u1EA6\u1EA4\u1EAA\u1EA8\u00C3\u0100\u0102\u1EB0\u1EAE\u1EB4\u1EB2\u0226\u01E0\u00C4\u01DE\u1EA2\u00C5\u01FA\u01CD\u0200\u0202\u1EA0\u1EAC\u1EB6\u1E00\u0104\u023A\u2C6F]/g},
     {'base':'AA','regex':/[\uA732]/g},
     {'base':'AE','regex':/[\u00C6\u01FC\u01E2]/g},
@@ -85,13 +85,13 @@ const diacritics_removal_map = [
     {'base':'y','regex':/[\u0079\u24E8\uFF59\u1EF3\u00FD\u0177\u1EF9\u0233\u1E8F\u00FF\u1EF7\u1E99\u1EF5\u01B4\u024F\u1EFF]/g},
     {'base':'z','regex':/[\u007A\u24E9\uFF5A\u017A\u1E91\u017C\u017E\u1E93\u1E95\u01B6\u0225\u0240\u2C6C\uA763]/g}
 ]
-const removeDiacritics = (str) ->
-  str .= replace(regex, base) for {regex, base} of diacritics_removal_map
+function removeDiacritics (str)
+  str .= replace(regex, base) for {regex, base} of DIACRITICS_REMOVAL_MAP
   str
 
-const strip_prefixes = [/^the\s+/, /^a\s+/, /^an\s+/]
-const stripPrefixes = (str) ->
-  for regex of strip_prefixes
+const PREFIXES_TO_STRIP = [/^\s*the\s+/, /^\s*a\s+/, /^\s*an\s+/]
+function stripPrefixes (str)
+  for regex of PREFIXES_TO_STRIP
     str .= replace(regex, '')
     break
   str
@@ -102,27 +102,30 @@ const VARIOUS_ARTISTS = "Various Artists"
 const MPD_SENTINEL = /^(OK|ACK|list_OK)(.*)$/m
 
 const trim = do
-  __trim = String.prototype.trim
-  if __trim?
-    (text) -> if text? then __trim.call(text) else ""
+  if (__trim = String.prototype.trim)?
+    (text) -> __trim.call(text)
   else
     __trimLeft = /^\s+/
     __trimRight = /\s+$/
-    (text) ->
-      if text? then text.toString().replace(__trimLeft, "").replace(__trimRight, "") else ""
+    (text) -> text.replace(__trimLeft, "").replace(__trimRight, "")
 
-const elapsedToDate = (elapsed) -> new Date((new Date()) - elapsed * 1000)
-const dateToElapsed = (date) -> ((new Date()) - date) / 1000
+function elapsedToDate (elapsed)
+  new Date((new Date()) - elapsed * 1000)
 
-const fromMpdVol = (vol) ->
+function dateToElapsed (date)
+  ((new Date()) - date) / 1000
+
+function fromMpdVol (vol)
   vol = parseInt(vol, 10)
   if vol < 0 or vol > 100 then null else vol / 100
 
-const toMpdVol = (vol) -> 0 >? Math.round(parseFloat(vol, 10) * 100) <? 100
+function toMpdVol (vol)
+  0 >? Math.round(parseFloat(vol, 10) * 100) <? 100
 
-const sortableTitle = (title) -> stripPrefixes(removeDiacritics(title).toLowerCase())
+function sortableTitle (title)
+  stripPrefixes(removeDiacritics(title).toLowerCase())
 
-const titleCompare = (a, b) ->
+function titleCompare (a, b)
   _a = sortableTitle(a)
   _b = sortableTitle(b)
   if _a < _b
@@ -139,23 +142,21 @@ const titleCompare = (a, b) ->
     else
       0
 
-const noop = ->
+function noop then
 
-const qEscape = (str) ->
+function qEscape (str)
   # replace all " with \"
   str.toString().replace /"/g, '\\"'
 
-const sign = (n) -> if n > 0 then 1 else if n < 0 then -1 else 0
+function sign (n)
+  if n > 0 then 1 else if n < 0 then -1 else 0
 
-const boolToInt = (b) -> if b then 1 else 0
-
-const parseMaybeUndefNumber = (n) ->
+function parseMaybeUndefNumber (n)
   n = parseInt(n, 10)
-  n = "" if isNaN(n)
+  n = null if isNaN(n)
   n
 
-const split_once = (line, separator) ->
-  # should be line.split(separator, 1), but javascript is stupid
+function splitOnce (line, separator)
   index = line.indexOf(separator)
   [line.substr(0, index), line.substr(index + separator.length)]
 
@@ -175,11 +176,9 @@ class EventEmitter
   removeListener: !(event_name, handler) ->
     delete @event_handlers@[event_name][handler[@prop]]
 
-  # protected
   emit: !(event_name, ...args) ->
     for id, h in @event_handlers@[event_name]
       h(...args)
-
 
 class Mpd extends EventEmitter
   ######################### static ######################
@@ -280,7 +279,7 @@ class Mpd extends EventEmitter
       # no dict comprehensions :(
       # https://github.com/satyr/coco/issues/102
       o = {}
-      for [key, val] of (split_once(line, ": ") for line of msg.split("\n"))
+      for [key, val] of (splitOnce(line, ": ") for line of msg.split("\n"))
         o[key] = val
       @status <<<
         volume: fromMpdVol(o.volume)
@@ -533,16 +532,16 @@ class Mpd extends EventEmitter
     cmds = []
     if status.consume?
       @status.consume = status.consume
-      cmds.push "consume #{boolToInt(status.consume)}"
+      cmds.push "consume #{Number(status.consume)}"
     if status.random?
       @status.random = status.random
-      cmds.push "random #{boolToInt(status.random)}"
+      cmds.push "random #{Number(status.random)}"
     if status.repeat?
       @status.repeat = status.repeat
-      cmds.push "repeat #{boolToInt(status.repeat)}"
+      cmds.push "repeat #{Number(status.repeat)}"
     if status.single?
       @status.single = status.single
-      cmds.push "single #{boolToInt(status.single)}"
+      cmds.push "single #{Number(status.single)}"
 
     @sendCommands cmds
     @emit 'statusupdate'
@@ -569,12 +568,12 @@ class Mpd extends EventEmitter
       current_file = null
       stickers = {}
       for line of msg.split("\n")
-        [name, value] = split_once line, ": "
+        [name, value] = splitOnce line, ": "
         if name is "file"
           current_file = value
         else if name is "sticker"
           return cb("protocol") if current_file!?
-          value = split_once(value, "=")[1]
+          value = splitOnce(value, "=")[1]
           stickers[current_file] = value
       cb(null, stickers)
 
@@ -648,7 +647,7 @@ class Mpd extends EventEmitter
         mpd_tracks.push(current_track)
       current_track := {}
     for line of msg.split("\n")
-      [key, value] = split_once line, ": "
+      [key, value] = splitOnce line, ": "
       continue if key is 'directory'
       flush_current_track() if key is 'file'
       current_track[key] = value
@@ -658,14 +657,14 @@ class Mpd extends EventEmitter
   mpdTracksToTrackObjects: (mpd_tracks) ->
     tracks = []
     for mpd_track of mpd_tracks
-      artist_name = trim(mpd_track.Artist)
+      artist_name = trim(mpd_track.Artist ? "")
       track =
         file: mpd_track.file
         name: mpd_track.Title || ..trackNameFromFile(mpd_track.file)
         artist_name: artist_name
         artist_disambiguation: ""
         album_artist_name: mpd_track.AlbumArtist or artist_name
-        album_name: trim(mpd_track.Album)
+        album_name: trim(mpd_track.Album ? "")
         track: parseMaybeUndefNumber(mpd_track.Track)
         time: parseInt(mpd_track.Time, 10)
         year: parseMaybeUndefNumber(mpd_track.Date)
