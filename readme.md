@@ -60,6 +60,7 @@ API:
     pos: 99, // index into album.track structure
   }
   playlist structure: {
+    name: "Playlist Name"
     item_list: [sorted list of {playlist item structure}],
     item_table: {song id => {playlist item structure}}
   }
@@ -68,6 +69,7 @@ API:
     track: {track structure},
     pos: 2, // 0-based position in the playlist
   }
+  stored_playlists: {playlist name => {playlist structure}}
   status structure: {
     volume: .89, // float 0-1
     repeat: true, // whether we're in repeat mode. see also `single`

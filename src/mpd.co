@@ -96,7 +96,8 @@ function titleCompare (a, b)
     else
       0
 
-function noop then
+function noop (err)
+  throw err if err
 
 function qEscape (str)
   # replace all " with \"
@@ -114,24 +115,32 @@ function splitOnce (line, separator)
   index = line.indexOf(separator)
   [line.substr(0, index), line.substr(index + separator.length)]
 
-function parseMpdTracks (msg)
+function parseMpdObject (msg)
+  # no dict comprehensions :(
+  # https://github.com/satyr/coco/issues/102
+  o = {}
+  for [key, val] of (splitOnce(line, ": ") for line of msg.split("\n"))
+    o[key] = val
+  o
+
+function parseWithSepField (msg, sep_field, skip_fields, flush)
   if msg is ""
     return []
 
-  # build list of tracks from msg
-  mpd_tracks = []
-  current_track = null
-  flushCurrentTrack = !->
-    if current_track?
-      mpd_tracks.push(current_track)
-    current_track := {}
+  current_obj = null
+  !function flushCurrentObj
+    if current_obj?
+      flush(current_obj)
+    current_obj := {}
   for line of msg.split("\n")
-    [key, value] = splitOnce line, ": "
-    continue if key is 'directory'
-    flushCurrentTrack() if key is 'file'
-    current_track[key] = value
-  flushCurrentTrack()
-  mpd_tracks
+    [key, value] = splitOnce(line, ': ')
+    continue if key in skip_fields
+    flushCurrentObj() if key is sep_field
+    current_obj[key] = value
+  flushCurrentObj()
+
+function parseMpdTracks (msg, flush)
+  parseWithSepField(msg, 'file', 'directory': true, flush)
 
 function getOrCreate (key, table, initObjFunc)
   result = table[key]
@@ -175,6 +184,8 @@ function moreThanOneKey (object)
     return true if not ++count
   return false
 
+next_id = 0
+
 if (EventEmitter = require?('events')?EventEmitter)!?
   class EventEmitter
     ..count = 0
@@ -202,9 +213,9 @@ class Mpd extends EventEmitter
     len = if (dot = filetitle.lastIndexOf('.')) >= 0 then dot else filetitle.length
     filetitle.substr 0, len
 
-  ..mpdTracksToTrackObjects = (mpd_tracks) ->
+  ..parseMsgToTrackObjects = (msg) ->
     tracks = []
-    for mpd_track of mpd_tracks
+    parseMpdTracks msg, !(mpd_track) ->
       artist_name = trim(mpd_track.Artist ? "")
       track =
         file: mpd_track.file
@@ -228,15 +239,13 @@ class Mpd extends EventEmitter
     super()
     @resetServerState()
 
-    @event_handlers = {}
-
     # maps mpd subsystems to our function to call which will update ourself
     @updateFuncs =
       database: ~> # the song database has been modified after update.
         @have_file_list_cache = false
         @updateLibrary()
       update: noop # a database update has started or finished. If the database was modified during the update, the database event is also emitted.
-      stored_playlist: noop # a stored playlist has been modified, renamed, created or deleted
+      stored_playlist: @~updateStoredPlaylists # a stored playlist has been modified, renamed, created or deleted
       playlist: @~updatePlaylist # the current playlist has been modified
       player: @~updateStatus # the player has been started, stopped or seeked
       mixer: @~updateStatus # the volume has been changed
@@ -262,10 +271,10 @@ class Mpd extends EventEmitter
     return if command_list.length is 0
     @sendCommand "command_list_begin\n#{command_list.join("\n")}\ncommand_list_end", callback
 
-  updateLibrary: !->
+  updateLibrary: !(callback=noop) ->
     @sendCommand 'listallinfo', !(err, msg) ~>
-      if err then throw err
-      tracks = ..mpdTracksToTrackObjects parseMpdTracks msg
+      return callback(err) if err
+      tracks = ..parseMsgToTrackObjects msg
       @buildArtistAlbumTree tracks, @library
       @have_file_list_cache = true
       # in case the user has a search open, we'll apply their search again.
@@ -273,13 +282,13 @@ class Mpd extends EventEmitter
       # reset last query so that search is forced to run again
       @last_query = ""
       @search last_query
+      callback()
 
   updatePlaylist: !(callback=noop) ->
     @sendCommand "playlistinfo", !(err, msg) ~>
       return callback(err) if err
-      mpd_tracks = parseMpdTracks msg
       @clearPlaylist()
-      for mpd_track of mpd_tracks
+      parseMpdTracks msg, !(mpd_track) ~>
         id = parseInt(mpd_track.Id, 10)
         obj =
           id: id
@@ -303,14 +312,42 @@ class Mpd extends EventEmitter
           @emit 'playlistupdate'
           callback()
 
+  updateStoredPlaylists: !(callback=noop) ->
+    @sendCommand "listplaylists", !(err, msg) ~>
+      return callback(err) if err
+
+      @stored_playlists = {}
+      count = 0
+      parseWithSepField msg, 'playlist', {}, !(obj) ~>
+        name = obj.playlist
+        count += 1
+        @updateStoredPlaylist name, !(err, playlist) ~>
+          return cb(err) if err
+          count -= 1
+          @stored_playlists[name] = playlist
+          if count is 0
+            callback()
+            @emit \storedplaylistupdate
+
+  updateStoredPlaylist: !(name, callback=noop) ->
+    @sendCommand "listplaylist \"#{qEscape(name)}\"", !(err, msg) ~>
+      return callback(err) if err
+      item_list = []
+      item_table = {}
+      parseWithSepField msg, 'file', {}, !(item) ~>
+        item =
+          track: @library.track_table[item.file]
+          pos: item_list.length
+          id: next_id++
+        item_list.push(item)
+        item_table[item.id] = item
+      @stored_playlists[name] = {name, item_list, item_table}
+      callback()
+
   updateStatus: !(callback=noop) ->
     @sendCommand "status", !(err, msg) ~>
-      throw err if err
-      # no dict comprehensions :(
-      # https://github.com/satyr/coco/issues/102
-      o = {}
-      for [key, val] of (splitOnce(line, ": ") for line of msg.split("\n"))
-        o[key] = val
+      return callback(err) if err
+      o = parseMpdObject(msg)
       @status <<<
         volume: fromMpdVol(o.volume)
         repeat: !!parseInt(o.repeat, 2)
@@ -334,16 +371,20 @@ class Mpd extends EventEmitter
     @sendCommand "currentsong", !(err, msg) ~>
       return callback(err) if err
 
-      mpd_tracks = parseMpdTracks msg
-      if mpd_tracks.length is 0
+      count = 0
+      parseMpdTracks(msg, updateWithMpdTrack)
+
+      if count is 0
         # no current song
         @status.current_item = null
         callback()
         @emit 'statusupdate'
         return
+      else if count > 1
+        throw new Error()
 
-      throw "error" if mpd_tracks.length not of [0, 1]
-      for mpd_track of mpd_tracks
+      !~function updateWithMpdTrack(mpd_track)
+        count += 1
         id = parseInt(mpd_track.Id, 10)
         pos = parseInt(mpd_track.Pos, 10)
 
@@ -537,8 +578,8 @@ class Mpd extends EventEmitter
     @sendCommands cmds, (err) ~> callback(err)
     @emit 'playlistupdate'
 
-  removeId: !(track_id) ->
-    @removeIds [track_id]
+  removeId: !(track_id, callback=noop) ->
+    @removeIds [track_id], callback
 
   close: !-> @send "close\n" # bypass message queue
 
@@ -576,11 +617,11 @@ class Mpd extends EventEmitter
     @sendCommands cmds
     @emit 'statusupdate'
 
-  getFileInfo: !(file, cb=noop) ->
+  getFileInfo: !(file, callback=noop) ->
     @sendCommand "lsinfo \"#{qEscape(file)}\"", !(err, msg) ~>
-      return cb(err) if err
-      [track] = ..mpdTracksToTrackObjects parseMpdTracks msg
-      cb(null, track)
+      return callback(err) if err
+      [track] = ..parseMsgToTrackObjects msg
+      callback(null, track)
 
   authenticate: !(password, callback=noop) ->
     @sendCommand "password \"#{qEscape(password)}\"", !(err) ~> callback(err)
@@ -629,7 +670,8 @@ class Mpd extends EventEmitter
       [line, code, str] = m
       if code is "ACK"
         @emit 'error', str
-        @handleMessage str
+        err = new Error(str)
+        @handleMessage(err)
       else if line.indexOf("OK MPD") is 0
         # new connection
         @emit 'connect'
@@ -645,7 +687,7 @@ class Mpd extends EventEmitter
 
   # cache of playlist data from mpd
   clearPlaylist: !->
-    @playlist = {}
+    @playlist = {name: ""}
     @playlist.item_list = []
     @playlist.item_table = {}
 
@@ -763,6 +805,7 @@ class Mpd extends EventEmitter
     @clearPlaylist()
     @status =
       current_item: null
+    @stored_playlists = {}
 
 module?.exports = Mpd
 window?.Mpd = Mpd
