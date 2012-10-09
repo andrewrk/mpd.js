@@ -169,6 +169,9 @@ function albumComparator (a, b)
 function artistComparator (a, b)
   titleCompare(a.name, b.name)
 
+function playlistComparator (a, b)
+  titleCompare(a.name, b.name)
+
 function albumKey (track)
   if track.album_name
     removeDiacritics(track.album_name)
@@ -260,6 +263,7 @@ class Mpd extends EventEmitter
     @updateLibrary()
     @updateStatus()
     @updatePlaylist()
+    @updateStoredPlaylists()
 
   sendCommand: !(command, callback=noop) ->
     @send "noidle\n" if @idling
@@ -316,33 +320,39 @@ class Mpd extends EventEmitter
     @sendCommand "listplaylists", !(err, msg) ~>
       return callback(err) if err
 
-      @stored_playlists = {}
       count = 0
+      stored_playlist_table = {}
       parseWithSepField msg, 'playlist', {}, !(obj) ~>
         name = obj.playlist
         count += 1
-        @updateStoredPlaylist name, !(err, playlist) ~>
-          return cb(err) if err
+        updateStoredPlaylist name, !(err) ~>
+          return if count!?
+          if err
+            count := null
+            return cb(err)
           count -= 1
-          @stored_playlists[name] = playlist
           if count is 0
+            @stored_playlist_table = stored_playlist_table
+            @stored_playlists = (v for k, v in stored_playlist_table)
+            @stored_playlists.sort(playlistComparator)
+            playlist.pos = i for playlist, i of @stored_playlists
             callback()
             @emit \storedplaylistupdate
 
-  updateStoredPlaylist: !(name, callback=noop) ->
-    @sendCommand "listplaylist \"#{qEscape(name)}\"", !(err, msg) ~>
-      return callback(err) if err
-      item_list = []
-      item_table = {}
-      parseWithSepField msg, 'file', {}, !(item) ~>
-        item =
-          track: @library.track_table[item.file]
-          pos: item_list.length
-          id: next_id++
-        item_list.push(item)
-        item_table[item.id] = item
-      @stored_playlists[name] = {name, item_list, item_table}
-      callback()
+      !~function updateStoredPlaylist (name, callback)
+        @sendCommand "listplaylist \"#{qEscape(name)}\"", !(err, msg) ~>
+          return callback(err) if err
+          item_list = []
+          item_table = {}
+          parseWithSepField msg, 'file', {}, !(item) ~>
+            item =
+              track: @library.track_table[item.file]
+              pos: item_list.length
+              id: next_id++
+            item_list.push(item)
+            item_table[item.id] = item
+          stored_playlist_table[name] = {name, item_list, item_table}
+          callback()
 
   updateStatus: !(callback=noop) ->
     @sendCommand "status", !(err, msg) ~>
@@ -685,11 +695,12 @@ class Mpd extends EventEmitter
         updateFunc = @updateFuncs[system.substring(9)] ? noop
         updateFunc()
 
-  # cache of playlist data from mpd
   clearPlaylist: !->
-    @playlist = {name: ""}
-    @playlist.item_list = []
-    @playlist.item_table = {}
+    @playlist =
+      item_list: []
+      item_table: {}
+      pos: null
+      name: null
 
   anticipatePlayId: !(track_id) ->
     item = @playlist.item_table[track_id]
@@ -805,7 +816,8 @@ class Mpd extends EventEmitter
     @clearPlaylist()
     @status =
       current_item: null
-    @stored_playlists = {}
+    @stored_playlist_table = {}
+    @stored_playlists = []
 
 module?.exports = Mpd
 window?.Mpd = Mpd

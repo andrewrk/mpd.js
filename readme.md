@@ -63,13 +63,13 @@ API:
     name: "Playlist Name"
     item_list: [sorted list of {playlist item structure}],
     item_table: {song id => {playlist item structure}}
+    pos: 3, // 0-based position in stored_playlists
   }
   playlist item structure: {
     id: 7, // playlist song id
     track: {track structure},
     pos: 2, // 0-based position in the playlist
   }
-  stored_playlists: {playlist name => {playlist structure}}
   status structure: {
     volume: .89, // float 0-1
     repeat: true, // whether we're in repeat mode. see also `single`
@@ -83,6 +83,8 @@ API:
     current_item: {playlist item structure},
   }
   search_results structure mimics library structure
+  stored_playlists: [sorted list of {playlist structure}]
+  stored_playlist_table: {playlist name => {playlist structure}}
 ```
 
 Developing mpd.js
