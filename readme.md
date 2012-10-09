@@ -55,12 +55,12 @@ API:
     artist_disambiguation: "Artist Name for Various Artist Albums",
     album: {album structure},
     album_artist_name: "Daft Punk",
-    file: "Obtuse/Cloudy Sky/06. Temple of Trance.mp3",
+    file: "Obtuse/Cloudy Sky/06. Temple of Trance.mp3", // also acts as the key into track_table
     time: 263, // length in seconds
     pos: 99, // index into album.track structure
   }
   playlist structure: {
-    name: "Playlist Name"
+    name: "Playlist Name" // also acts as the key into stored_playlist_table
     item_list: [sorted list of {playlist item structure}],
     item_table: {song id => {playlist item structure}}
     pos: 3, // 0-based position in stored_playlists
