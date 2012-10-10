@@ -69,6 +69,7 @@ API:
     id: 7, // playlist song id
     track: {track structure},
     pos: 2, // 0-based position in the playlist
+    playlist: {playlist structure}
   }
   status structure: {
     volume: .89, // float 0-1
@@ -85,6 +86,7 @@ API:
   search_results structure mimics library structure
   stored_playlists: [sorted list of {playlist structure}]
   stored_playlist_table: {playlist name => {playlist structure}}
+  stored_playlist_item_table: {id => {playlist item structure}}
 ```
 
 Developing mpd.js

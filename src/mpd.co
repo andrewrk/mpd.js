@@ -298,6 +298,7 @@ class Mpd extends EventEmitter
           id: id
           track: @library.track_table[mpd_track.file]
           pos: @playlist.item_list.length
+          playlist: @playlist
         @playlist.item_list.push obj
         @playlist.item_table[id] = obj
 
@@ -322,6 +323,7 @@ class Mpd extends EventEmitter
 
       count = 0
       stored_playlist_table = {}
+      stored_playlist_item_table = {}
       parseWithSepField msg, 'playlist', {}, !(obj) ~>
         name = obj.playlist
         count += 1
@@ -333,6 +335,7 @@ class Mpd extends EventEmitter
           count -= 1
           if count is 0
             @stored_playlist_table = stored_playlist_table
+            @stored_playlist_item_table = stored_playlist_item_table
             @stored_playlists = (v for k, v in stored_playlist_table)
             @stored_playlists.sort(playlistComparator)
             playlist.pos = i for playlist, i of @stored_playlists
@@ -344,14 +347,17 @@ class Mpd extends EventEmitter
           return callback(err) if err
           item_list = []
           item_table = {}
+          playlist = {name, item_list, item_table}
           parseWithSepField msg, 'file', {}, !(item) ~>
             item =
               track: @library.track_table[item.file]
               pos: item_list.length
               id: next_id++
+              playlist: playlist
             item_list.push(item)
             item_table[item.id] = item
-          stored_playlist_table[name] = {name, item_list, item_table}
+            stored_playlist_item_table[item.id] = item
+          stored_playlist_table[name] = playlist
           callback()
 
   updateStatus: !(callback=noop) ->
@@ -817,6 +823,7 @@ class Mpd extends EventEmitter
     @status =
       current_item: null
     @stored_playlist_table = {}
+    @stored_playlist_item_table = {}
     @stored_playlists = []
 
 module?.exports = Mpd
