@@ -341,6 +341,12 @@ class Mpd extends EventEmitter
             playlist.pos = i for playlist, i of @stored_playlists
             callback()
             @emit \storedplaylistupdate
+      if count is 0
+        @stored_playlist_table = {}
+        @stored_playlist_item_table = {}
+        @stored_playlists = []
+        callback()
+        @emit \storedplaylistupdate
 
       !~function updateStoredPlaylist (name, callback)
         @sendCommand "listplaylist \"#{qEscape(name)}\"", !(err, msg) ~>
