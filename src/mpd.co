@@ -188,6 +188,8 @@ function moreThanOneKey (object)
   return false
 
 next_id = 0
+function nextId
+  "id-#{next_id++}"
 
 if (EventEmitter = require?('events')?EventEmitter)!?
   class EventEmitter
@@ -333,20 +335,19 @@ class Mpd extends EventEmitter
             count := null
             return cb(err)
           count -= 1
-          if count is 0
-            @stored_playlist_table = stored_playlist_table
-            @stored_playlist_item_table = stored_playlist_item_table
-            @stored_playlists = (v for k, v in stored_playlist_table)
-            @stored_playlists.sort(playlistComparator)
-            playlist.pos = i for playlist, i of @stored_playlists
-            callback()
-            @emit \storedplaylistupdate
-      if count is 0
-        @stored_playlist_table = {}
-        @stored_playlist_item_table = {}
-        @stored_playlists = []
-        callback()
-        @emit \storedplaylistupdate
+          finishUp()
+
+      finishUp()
+
+      ~function finishUp
+        if count is 0
+          @stored_playlist_table = stored_playlist_table
+          @stored_playlist_item_table = stored_playlist_item_table
+          @stored_playlists = (v for k, v in stored_playlist_table)
+          @stored_playlists.sort(playlistComparator)
+          playlist.pos = i for playlist, i of @stored_playlists
+          callback()
+          @emit \storedplaylistupdate
 
       !~function updateStoredPlaylist (name, callback)
         @sendCommand "listplaylist \"#{qEscape(name)}\"", !(err, msg) ~>
@@ -358,7 +359,7 @@ class Mpd extends EventEmitter
             item =
               track: @library.track_table[item.file]
               pos: item_list.length
-              id: next_id++
+              id: nextId()
               playlist: playlist
             item_list.push(item)
             item_table[item.id] = item
