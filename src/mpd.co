@@ -187,6 +187,11 @@ function moreThanOneKey (object)
     return true if not ++count
   return false
 
+function firstKey (object)
+  for k in object
+    return k
+  return null
+
 next_id = 0
 function nextId
   "id-#{next_id++}"
@@ -474,7 +479,7 @@ class Mpd extends EventEmitter
 
     @emit 'playlistupdate'
 
-  queueFile: !(file, pos) -> @queueFiles [file], pos
+  queueFile: !(file, pos, callback) -> @queueFiles([file], pos, callback)
 
   queueFilesNext: !(files) ->
     new_pos = (@status.current_item?.pos ? -1) + 1
@@ -674,6 +679,42 @@ class Mpd extends EventEmitter
 
   setSticker: !(file, name, value, cb=noop) ->
     @setStickers [file], name, value, cb
+
+  queueFilesInStoredPlaylist: !(files, stored_playlist_name, pos, callback=noop) ->
+    return callback(null, []) unless files.length
+
+    esc_name = qEscape(stored_playlist_name)
+    stored_playlist = @stored_playlist_table[stored_playlist_name]
+    cmds = []
+    if stored_playlist?
+      pl_length = stored_playlist.item_list.length
+      pos ||= pl_length
+
+      for file of files by -1
+        cmds.push "playlistadd \"#esc_name\" \"#{qEscape(file)}\""
+        cmds.push "playlistmove \"#esc_name\" #pl_length #pos"
+        pl_length += 1
+    else
+      # this playlist doesn't exist yet.
+      for file of files
+        cmds.push "playlistadd \"#esc_name\" \"#{qEscape(file)}\""
+    @sendCommands cmds, !(err, msg) ->
+      return callback(err) if err
+      callback()
+
+  queueFileInStoredPlaylist: !(file, stored_playlist_name, pos, callback) ->
+    @queueFilesInStoredPlaylist([file], stored_playlist_name, pos, callback)
+
+  createStoredPlaylist: !(name, callback=noop) ->
+    any_file = firstKey(@library.track_table)
+    esc_name = qEscape(name)
+    cmds = [
+      "playlistadd \"#esc_name\" \"#{qEscape(any_file)}\""
+      "playlistclear \"#esc_name\""
+    ]
+    @sendCommands cmds, !(err, msg) ->
+      return callback(err) if err
+      callback()
 
   send: !(data) ->
     @emit \data, data
