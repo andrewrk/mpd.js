@@ -39,6 +39,7 @@ API:
     albums: [sorted list of {album structure}],
     pos: 29, // index into library.artists structure
     key: "artist name", // the index into artist_table
+                        // special case key: mpd.VARIOUS_ARTISTS_KEY
   }
   album structure:  {
     name: "Album Name",

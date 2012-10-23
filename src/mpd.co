@@ -229,7 +229,7 @@ class Mpd extends EventEmitter
       artist_name = trim(mpd_track.Artist ? "")
       track =
         file: mpd_track.file
-        name: mpd_track.Title || ..trackNameFromFile(mpd_track.file)
+        name: mpd_track.Title or ..trackNameFromFile(mpd_track.file)
         artist_name: artist_name
         artist_disambiguation: ""
         album_artist_name: mpd_track.AlbumArtist or artist_name
@@ -241,12 +241,15 @@ class Mpd extends EventEmitter
       tracks.push track
     tracks
 
-  ..DEFAULT_ARTIST = "[Unknown Artist]"
-  ..DEFAULT_ALBUM = "[Unknown Album]"
-  ..VARIOUS_ARTISTS = "Various Artists"
+  # this key is unique because it has capital letters
+  ..VARIOUS_ARTISTS_KEY = "VariousArtists"
 
   ~>
     super()
+
+    # options the user can toggle
+    @various_artists_name = "Various Artists"
+
     @resetServerState()
 
     # maps mpd subsystems to our function to call which will update ourself
@@ -774,10 +777,6 @@ class Mpd extends EventEmitter
     library.track_table = {}
     library.album_table = {}
     for track of tracks
-      track.artist_name ||= ..DEFAULT_ARTIST
-      track.album_artist_name ||= ..DEFAULT_ARTIST
-      track.album_name ||= ..DEFAULT_ALBUM
-
       library.track_table[track.file] = track
       album_key = albumKey(track)
       album = getOrCreate album_key, library.album_table, ->
@@ -803,12 +802,13 @@ class Mpd extends EventEmitter
         album_artists[artistKey(track.artist_name)] = true
       if moreThanOneKey(album_artists)
         # multiple artists. we're sure it's a compilation album.
-        album_artist_name = ..VARIOUS_ARTISTS
-      if album_artist_name is ..VARIOUS_ARTISTS
+        album_artist_name = @various_artists_name
+        artist_key = ..VARIOUS_ARTISTS_KEY
         # make sure to disambiguate the artist names
         for track of album.tracks
           track.artist_disambiguation = track.artist_name
-      artist_key = artistKey(album_artist_name)
+      else
+        artist_key = artistKey(album_artist_name)
       artist = getOrCreate artist_key, artist_table, ->
         name: album_artist_name
         albums: []
@@ -823,7 +823,7 @@ class Mpd extends EventEmitter
       artist.albums.sort albumComparator
       # cache the album indexes
       album.pos = i for album, i of artist.albums
-      if artist.name is ..VARIOUS_ARTISTS
+      if artist.key is ..VARIOUS_ARTISTS_KEY
         various_artist = artist
       else
         library.artists.push artist
