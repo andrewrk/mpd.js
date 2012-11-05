@@ -11,12 +11,13 @@
     "player",
     "daemon"
   ],
-  "dependencies": {
-    "superjoe30/diacritics"
-  },
   "development": {},
   "license": "MIT",
   "scripts": [
     "index.js"
-  ]
+  ],
+  "dependencies": {
+    "juliangruber/events": "*",
+    "superjoe30/diacritics": "*"
+  }
 }
