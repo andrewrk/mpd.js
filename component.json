@@ -1,0 +1,22 @@
+{
+  "name": "mpdclient",
+  "repo": "superjoe30/mpdclient",
+  "description": "mpd protocol parser for node and component",
+  "version": "0.0.1",
+  "keywords": [
+    "mpd",
+    "client",
+    "protocol",
+    "music",
+    "player",
+    "daemon"
+  ],
+  "dependencies": {
+    "superjoe30/diacritics"
+  },
+  "development": {},
+  "license": "MIT",
+  "scripts": [
+    "index.js"
+  ]
+}
