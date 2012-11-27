@@ -1,5 +1,5 @@
-Fast, predictive, event-based, and connection agnostic JavaScript interface to
-[music player daemon](http://musicpd.org).
+Protocol parser for [music player daemon](http://musicpd.org).
+Works in node.js and the browser via [component](https://github.com/component/component/).
 
 Usage:
 ------
@@ -8,89 +8,46 @@ node.js example
 ===============
 
 ```javascript
-var mpd, net, socket;
+var MpdClient = require('mpdclient')
+  , net = require("net")
+  , socket = net.connect({port: 6600})
+  , mpd_client = new MpdClient();
 
-net = require("net");
-socket = net.connect({port: 6600})
-mpd = new Mpd();
-mpd.on('data', function (data) {
+// hook up the data flow
+socket.setEncoding('utf8');
+mpd_client.on('send', function (data) {
   socket.write(data);
 });
-socket.on('connect', function () {
-  mpd.handleConnectionStart();
-});
 socket.on('data', function (data) {
-  mpd.receive(data);
+  mpd_client.receive(data);
+});
+
+// listen to events
+mpd_client.on('event_playlist', function() {
+  // do something
+});
+/* events:
+  === events from mpd ===
+  'event_database': the song database has been modified after update.
+  'event_update': a database update has started or finished. If the database
+    was modified during the update, the database event is also emitted.
+  'event_stored_playlist': a stored playlist has been modified, renamed, created or
+    deleted
+  'event_playlist': the current playlist has been modified
+  'event_player': the player has been started, stopped or seeked
+  'event_mixer': the volume has been changed
+  'event_output': an audio output has been enabled or disabled
+  'event_options': options like repeat, random, crossfade, replay gain
+  'event_sticker': the sticker database has been modified.
+  'event_subscription': a client has subscribed or unsubscribed to a channel
+  'event_message': a message was received on a channel this client is subscribed to;
+    this event is only emitted when the queue is empty
+
+  === other ===
+  'error': function (code, message) {} // mpd returned an error in response to a command.
+*/
+// there is also a generic event with the system name as a parameter:
+mpd_client.on('event', function(name) {
+  // `name` contains one of the events above, minus the `event_` part.
 });
 ```
-
-API:
-----
-
-```
-  library structure: {
-    artists: [sorted list of {artist structure}],
-    track_table: {"track file" => {track structure}},
-    artist_table: {"artist name" => {artist structure}},
-    album_table: {"album key" => {album structure}},
-  }
-  artist structure: {
-    name: "Artist Name",
-    albums: [sorted list of {album structure}],
-    pos: 29, // index into library.artists structure
-    key: "artist name", // the index into artist_table
-                        // special case key: mpd.VARIOUS_ARTISTS_KEY
-  }
-  album structure:  {
-    name: "Album Name",
-    year: 1999,
-    tracks: [sorted list of {track structure}],
-    artist: {artist structure}
-    pos: 13, // index into artist.albums structure
-    key: "album name", // the index into album_table
-  }
-  track structure: {
-    name: "Track Name",
-    track: 9,
-    artist_name: "Artist Name",
-    artist_disambiguation: "Artist Name for Various Artist Albums",
-    album: {album structure},
-    album_artist_name: "Daft Punk",
-    file: "Obtuse/Cloudy Sky/06. Temple of Trance.mp3", // also acts as the key into track_table
-    time: 263, // length in seconds
-    pos: 99, // index into album.track structure
-  }
-  playlist structure: {
-    name: "Playlist Name" // also acts as the key into stored_playlist_table
-    item_list: [sorted list of {playlist item structure}],
-    item_table: {song id => {playlist item structure}}
-    pos: 3, // 0-based position in stored_playlists
-  }
-  playlist item structure: {
-    id: 7, // playlist song id
-    track: {track structure},
-    pos: 2, // 0-based position in the playlist
-    playlist: {playlist structure}
-  }
-  status structure: {
-    volume: .89, // float 0-1
-    repeat: true, // whether we're in repeat mode. see also `single`
-    random: false, // random mode makes the next song random within the playlist
-    single: true, // true -> repeat the current song, false -> repeat the playlist
-    consume: true, // true -> remove tracks from playlist after done playing
-    state: "play", // or "stop" or "pause"
-    time: 234, // length of song in seconds
-    track_start_date: new Date(), // absolute datetime of now - position of current time
-    bitrate: 192, // number of kbps
-    current_item: {playlist item structure},
-  }
-  search_results structure mimics library structure
-  stored_playlists: [sorted list of {playlist structure}]
-  stored_playlist_table: {playlist name => {playlist structure}}
-  stored_playlist_item_table: {id => {playlist item structure}}
-```
-
-Developing mpd.js
------------------
-
-  `npm run dev`

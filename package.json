@@ -1,11 +1,8 @@
 {
-  "name": "mpd",
-  "version": "0.3.3",
-  "description": "javascript interface to music player daemon that works in node.js and the browser",
+  "name": "mpdclient",
+  "version": "0.0.1",
+  "description": "mpd protocol parser for node and component",
   "main": "index.js",
-  "engines": {
-    "node": "~0.8.0"
-  },
   "repository": {
     "type": "git",
     "url": "git@github.com:superjoe30/mpdclient.git"
@@ -19,5 +16,8 @@
     "protocol"
   ],
   "author": "Andrew Kelley",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "inherit-component": "0.0.2"
+  }
 }

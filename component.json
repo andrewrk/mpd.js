@@ -18,6 +18,6 @@
   ],
   "dependencies": {
     "juliangruber/events": "*",
-    "superjoe30/diacritics": "*"
+    "component/inherit": "*"
   }
 }
