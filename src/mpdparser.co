@@ -217,7 +217,7 @@ if (EventEmitter = require?('events')?EventEmitter)!?
       for id, h in @event_handlers@[event_name]
         h(...args)
 
-class Mpd extends EventEmitter
+class MpdParser extends EventEmitter
   ..trackNameFromFile = (filename) ->
     filetitle = filename.substr(filename.lastIndexOf('/') + 1)
     len = if (dot = filetitle.lastIndexOf('.')) >= 0 then dot else filetitle.length
@@ -722,9 +722,8 @@ class Mpd extends EventEmitter
   send: !(data) ->
     @emit \data, data
 
-  handleMessage: !(err, msg) ->
-    handler = @msg_handler_queue.shift()
-    handler(err, msg)
+  handleMessage: !(arg) ->
+    @emit \message, arg
 
   receive: !(data) ->
     @buffer += data
@@ -738,12 +737,12 @@ class Mpd extends EventEmitter
       if code is "ACK"
         @emit 'error', str
         err = new Error(str)
-        @handleMessage(err)
+        @handleMessage {err}
       else if line.indexOf("OK MPD") is 0
         # new connection
-        @emit 'connect'
+        @emit 'lifesigns'
       else
-        @handleMessage null, msg
+        @handleMessage {msg}
       @buffer = @buffer.substring(msg.length+line.length+1)
 
   handleIdleResults: !(msg) ->
@@ -874,5 +873,5 @@ class Mpd extends EventEmitter
     @stored_playlist_item_table = {}
     @stored_playlists = []
 
-module?.exports = Mpd
-window?.Mpd = Mpd
+module?.exports = MpdParser
+window?.MpdParser = MpdParser
