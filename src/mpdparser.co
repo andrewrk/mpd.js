@@ -244,8 +244,10 @@ class MpdParser extends EventEmitter
   # this key is unique because it has capital letters
   ..VARIOUS_ARTISTS_KEY = "VariousArtists"
 
-  ~>
+  (@mpd_socket) ~>
     super()
+
+    @mpd_socket.on \data, !(data) ~> @receive data
 
     # options the user can toggle
     @various_artists_name = "Various Artists"
@@ -720,7 +722,7 @@ class MpdParser extends EventEmitter
       callback()
 
   send: !(data) ->
-    @emit \command, data
+    @mpd_socket.write data
 
   handleMessage: !(arg) ->
     @msg_handler_queue.shift! arg
