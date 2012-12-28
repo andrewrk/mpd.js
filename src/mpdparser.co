@@ -275,9 +275,9 @@ class MpdParser extends EventEmitter
     @updatePlaylist()
     @updateStoredPlaylists()
 
-  sendCommand: !(command, callback=noop) ->
+  sendRequest: !(command) ->
     @send "noidle\n" if @idling
-    @sendWithCallback command, callback
+    @sendWithCallback command, !(arg) ~> @emit \response, arg
     @sendWithCallback "idle", @~handleIdleResultsLoop
     @idling = true # we're always idling after the first command.
 
@@ -720,10 +720,10 @@ class MpdParser extends EventEmitter
       callback()
 
   send: !(data) ->
-    @emit \data, data
+    @emit \command, data
 
   handleMessage: !(arg) ->
-    @emit \message, arg
+    @msg_handler_queue.shift! arg
 
   receive: !(data) ->
     @buffer += data
@@ -746,10 +746,11 @@ class MpdParser extends EventEmitter
       @buffer = @buffer.substring(msg.length+line.length+1)
 
   handleIdleResults: !(msg) ->
+    systems = []
     for system of trim(msg).split("\n")
       if system.length > 0
-        updateFunc = @updateFuncs[system.substring(9)] ? noop
-        updateFunc()
+        systems.push system.substring(9)
+    @emit \status, systems
 
   clearPlaylist: !->
     @playlist =
@@ -841,7 +842,8 @@ class MpdParser extends EventEmitter
     @msg_handler_queue.push cb
     @send "#cmd\n"
 
-  handleIdleResultsLoop: !(err, msg) ->
+  handleIdleResultsLoop: !(arg) ->
+    {err, msg} = arg
     if err then throw err
     @handleIdleResults(msg)
     # if we have nothing else to do, idle.
