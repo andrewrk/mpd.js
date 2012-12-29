@@ -237,7 +237,6 @@ class MpdParser extends EventEmitter
         track: parseMaybeUndefNumber(mpd_track.Track)
         time: parseInt(mpd_track.Time, 10)
         year: parseMaybeUndefNumber(mpd_track.Date)
-      track.search_tags = removeDiacritics([track.artist_name, track.album_artist_name, track.album_name, track.name, track.file].join("\n"))
       tracks.push track
     tracks
 
