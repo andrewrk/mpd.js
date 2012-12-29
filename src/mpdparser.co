@@ -291,8 +291,14 @@ class MpdParser extends EventEmitter
     return response if err?
     command_name = complete_command.match(/^\S*/)[0]
     msg: switch command_name
-      case 'listallinfo' then ..parseMsgToTrackObjects(msg)
-      case 'lsinfo'      then ..parseMsgToTrackObjects(msg)[0]
+      case 'listallinfo'  then ..parseMsgToTrackObjects(msg)
+      case 'lsinfo'       then ..parseMsgToTrackObjects(msg)[0]
+      case 'status'       then parseMpdObject msg
+      case 'playlistinfo'
+        items = []
+        parseMpdTracks msg, (track) ->
+          items.push {id: parseInt(track.Id, 10), file: track.file}
+        items
       default msg
 
   updateLibrary: !(callback=noop) ->
