@@ -299,6 +299,11 @@ class MpdParser extends EventEmitter
         parseMpdTracks msg, (track) ->
           items.push {id: parseInt(track.Id, 10), file: track.file}
         items
+      case 'currentsong'
+        item = null
+        parseMpdTracks msg, (track) ->
+          item := {id: parseInt(track.Id, 10), pos: parseInt(track.Pos, 10), file: track.file}
+        item
       default msg
 
   updateLibrary: !(callback=noop) ->
