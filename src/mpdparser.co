@@ -279,13 +279,21 @@ class MpdParser extends EventEmitter
 
   sendRequest: !(command) ->
     @send "noidle\n" if @idling
-    @sendWithCallback command, !(arg) ~> @emit \response, arg
+    @sendWithCallback command, !(response) ~> @emit \response, @parseResponse command, response
     @sendWithCallback "idle", @~handleIdleResultsLoop
     @idling = true # we're always idling after the first command.
 
   sendCommands: !(command_list, callback=noop) ->
     return if command_list.length is 0
     @sendCommand "command_list_begin\n#{command_list.join("\n")}\ncommand_list_end", callback
+
+  parseResponse: (complete_command, response) ->
+    {err, msg} = response
+    return response if err?
+    command_name = complete_command.match(/^\S*/)[0]
+    switch command_name
+      case 'listallinfo' then msg: ..parseMsgToTrackObjects msg
+      default response
 
   updateLibrary: !(callback=noop) ->
     @sendCommand 'listallinfo', !(err, msg) ~>
