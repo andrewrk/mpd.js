@@ -291,9 +291,10 @@ class MpdParser extends EventEmitter
     {err, msg} = response
     return response if err?
     command_name = complete_command.match(/^\S*/)[0]
-    switch command_name
-      case 'listallinfo' then msg: ..parseMsgToTrackObjects msg
-      default response
+    msg: switch command_name
+      case 'listallinfo' then ..parseMsgToTrackObjects(msg)
+      case 'lsinfo'      then ..parseMsgToTrackObjects(msg)[0]
+      default msg
 
   updateLibrary: !(callback=noop) ->
     @sendCommand 'listallinfo', !(err, msg) ~>
