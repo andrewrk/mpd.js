@@ -276,9 +276,9 @@ class MpdParser extends EventEmitter
     @updatePlaylist()
     @updateStoredPlaylists()
 
-  sendRequest: !(command) ->
+  sendRequest: !(command, cb=noop) ->
     @send "noidle\n" if @idling
-    @sendWithCallback command, !(response) ~> @emit \response, @parseResponse command, response
+    @sendWithCallback command, !(response) ~> cb @parseResponse command, response
     @sendWithCallback "idle", @~handleIdleResultsLoop
     @idling = true # we're always idling after the first command.
 
