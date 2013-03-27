@@ -12,6 +12,12 @@ var client = mpd.connect({
   port: 6600,
   host: 'localhost',
 });
+client.on('ready', function() {
+  console.log("ready");
+});
+client.on('system', function(name) {
+  console.log("update", name);
+});
 client.on('system-player', function() {
   client.sendCommand(cmd("status", []), function(err, msg) {
     if (err) throw err;
@@ -24,21 +30,19 @@ client.on('system-player', function() {
 
 ### Functions
 
-## mpd.cmd(name, args)
+#### mpd.cmd(name, args)
 
 Convert name/args pair into a Command.
 
-## mpd.connect(options)
+#### mpd.connect(options)
 
 Connects and returns a client.
 
-## client.sendCommand(command, callback)
+#### client.sendCommand(command, callback)
 
 `command` can be a `MpdClient.Command` or a string.
 
-## client.sendCommands(commandList, callback)
-
-## client.send(data)
+#### client.sendCommands(commandList, callback)
 
 ### Events
 
