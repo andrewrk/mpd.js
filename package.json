@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:superjoe30/node-mpd.git"
+    "url": "git@github.com:superjoe30/mpd.js.git"
   },
   "keywords": [
     "mpd",
