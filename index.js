@@ -133,7 +133,7 @@ Command.prototype.toString = function() {
 
 function argEscape(arg){
   // replace all " with \"
-  return arg.toString().replace(/"/g, '\\"');
+  return '"' + arg.toString().replace(/"/g, '\\"') + '"';
 }
 
 function noop(err) {
