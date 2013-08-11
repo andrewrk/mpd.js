@@ -73,7 +73,7 @@ MpdClient.prototype.setupIdling = function() {
 
 MpdClient.prototype.sendCommand = function(command, callback) {
   var self = this;
-  callback = callback || noop;
+  callback = callback || noop.bind(this);
   assert.ok(self.idling);
   self.send("noidle\n");
   self.sendWithCallback(command, callback);
@@ -84,7 +84,7 @@ MpdClient.prototype.sendCommand = function(command, callback) {
 
 MpdClient.prototype.sendCommands = function(commandList, callback) {
   var fullCmd = "command_list_begin\n" + commandList.join("\n") + "\ncommand_list_end";
-  this.sendCommand(fullCmd, callback || noop);
+  this.sendCommand(fullCmd, callback || noop.bind(this));
 };
 
 MpdClient.prototype.handleIdleResultsLoop = function(err, msg) {
@@ -113,7 +113,7 @@ MpdClient.prototype.handleIdleResults = function(msg) {
 };
 
 MpdClient.prototype.sendWithCallback = function(cmd, cb) {
-  cb = cb || noop;
+  cb = cb || noop.bind(this);
   this.msgHandlerQueue.push(cb);
   this.send(cmd + "\n");
 };
@@ -137,7 +137,7 @@ function argEscape(arg){
 }
 
 function noop(err) {
-  if (err) throw err;
+  if (err) this.emit('error', err);
 }
 
 // convenience
