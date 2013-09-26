@@ -3,6 +3,10 @@
 Connect to a [music player daemon](http://musicpd.org) server, send commands,
 emit events.
 
+You might also be interested in checking out
+[node-groove](https://github.com/superjoe30/node-groove),
+a generic music player backend as a node module.
+
 ## Usage
 
 ```js
