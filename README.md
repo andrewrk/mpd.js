@@ -32,6 +32,8 @@ client.on('system-player', function() {
 
 ## Documentation
 
+See also the [MPD Protocol Documentation](http://www.musicpd.org/doc/protocol/).
+
 ### Functions
 
 #### mpd.cmd(name, args)
