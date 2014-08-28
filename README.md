@@ -4,8 +4,13 @@ Connect to a [music player daemon](http://musicpd.org) server, send commands,
 emit events.
 
 You might also be interested in checking out
-[node-groove](https://github.com/superjoe30/node-groove),
+[node-groove](https://github.com/andrewrk/node-groove),
 a generic music player backend as a node module.
+
+Or maybe [Groove Basin](https://github.com/andrewrk/groovebasin),
+a music player server which supports the MPD protocol and has many
+[features and improvements](http://andrewkelley.me/post/quest-build-ultimate-music-player.html)
+over MPD.
 
 ## Usage
 
@@ -43,6 +48,11 @@ Convert name/args pair into a Command.
 #### mpd.connect(options)
 
 Connects and returns a client.
+
+#### mpd.parseKeyValueMessage(msg)
+
+`msg`: a string which contains an MPD response.
+Returns an object.
 
 #### client.sendCommand(command, callback)
 
