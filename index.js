@@ -8,6 +8,7 @@ var EventEmitter = require('events').EventEmitter
 module.exports = MpdClient;
 MpdClient.Command = Command
 MpdClient.cmd = cmd;
+MpdClient.parseKeyValueMessage = parseKeyValueMessage;
 
 function MpdClient() {
   EventEmitter.call(this);
@@ -144,4 +145,21 @@ function noop(err) {
 function cmd(name, args) {
   return new Command(name, args);
 }
+
+function parseKeyValueMessage(msg) {
+  var result = {};
+
+  msg.split('\n').forEach(function(p){
+    if(p.length === 0) {
+      return;
+    }
+    var keyValue = p.match(/([^ ]+): (.*)/);
+    if (keyValue == null) {
+      throw new Error('Could not parse entry "' + p + '"')
+    }
+    result[keyValue[1]] = keyValue[2];
+  });
+  return result;
+}
+
 
