@@ -122,6 +122,22 @@ MpdClient.prototype.send = function(data) {
   this.socket.write(data);
 };
 
+MpdClient.msgToJson = function(msg) {
+  var result = {};
+
+  msg.split('\n').forEach(function(p){
+    if(p.length === 0) {
+      return;
+    }
+    var keyValue = p.match(/([^ ]+): (.*)/);
+    if (keyValue == null) {
+      throw new Error('Could not parse entry "' + p + '"')
+    }
+    result[keyValue[1]] = keyValue[2];
+  });
+  return result;
+}
+
 function Command(name, args) {
   this.name = name;
   this.args = args;
