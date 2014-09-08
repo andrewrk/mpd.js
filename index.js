@@ -147,7 +147,8 @@ function cmd(name, args) {
 }
 
 function parseKeyValueMessage(msg) {
-  var result = {};
+  var objs = [];
+  var obj = {};
 
   msg.split('\n').forEach(function(p){
     if(p.length === 0) {
@@ -157,9 +158,14 @@ function parseKeyValueMessage(msg) {
     if (keyValue == null) {
       throw new Error('Could not parse entry "' + p + '"')
     }
-    result[keyValue[1]] = keyValue[2];
+
+    if (obj[keyValue[1]] !== undefined) {
+      objs.push(obj);
+      obj = {};
+    }
+    else {
+      obj[keyValue[1]] = keyValue[2];
+    }
   });
-  return result;
+  return (objs.length === 0) ? obj : objs;
 }
-
-
