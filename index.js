@@ -9,6 +9,7 @@ module.exports = MpdClient;
 MpdClient.Command = Command
 MpdClient.cmd = cmd;
 MpdClient.parseKeyValueMessage = parseKeyValueMessage;
+MpdClient.parseArrayMessage = parseArrayMessage;
 
 function MpdClient() {
   EventEmitter.call(this);
@@ -160,6 +161,34 @@ function parseKeyValueMessage(msg) {
     result[keyValue[1]] = keyValue[2];
   });
   return result;
+}
+
+function parseArrayMessage(msg) {
+  var results = [];
+  var obj = {};
+
+  msg.split('\n').forEach(function(p) {
+    if(p.length === 0) {
+      return;
+    }
+    var keyValue = p.match(/([^ ]+): (.*)/);
+    if (keyValue == null) {
+      throw new Error('Could not parse entry "' + p + '"')
+    }
+
+    if (obj[keyValue[1]] !== undefined) {
+      console.log(">> Created new object.");
+      results.push(obj);
+      obj = {};
+      obj[keyValue[1]] = keyValue[2];
+    }
+    else {
+      obj[keyValue[1]] = keyValue[2];
+    }
+    console.log(keyValue[1] + ": " + keyValue[2]);
+  });
+  results.push(obj);
+  return results;
 }
 
 
