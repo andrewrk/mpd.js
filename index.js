@@ -177,7 +177,6 @@ function parseArrayMessage(msg) {
     }
 
     if (obj[keyValue[1]] !== undefined) {
-      console.log(">> Created new object.");
       results.push(obj);
       obj = {};
       obj[keyValue[1]] = keyValue[2];
@@ -185,10 +184,7 @@ function parseArrayMessage(msg) {
     else {
       obj[keyValue[1]] = keyValue[2];
     }
-    console.log(keyValue[1] + ": " + keyValue[2]);
   });
   results.push(obj);
   return results;
 }
-
-
