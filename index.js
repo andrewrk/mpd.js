@@ -20,7 +20,14 @@ function MpdClient() {
 }
 util.inherits(MpdClient, EventEmitter);
 
+var defaultConnectOpts = {
+  host: 'localhost',
+  port: 6600
+}
+
 MpdClient.connect = function(options) {
+  options = options || defaultConnectOpts;
+  
   var client = new MpdClient();
   client.socket = net.connect(options, function() {
     client.emit('connect');
