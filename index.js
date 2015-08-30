@@ -37,6 +37,8 @@ MpdClient.connect = function(options) {
     client.receive(data);
   });
   client.socket.on('close', function() {
+    // No commands should be execuded on closed connection
+    client.idling = false;
     client.emit('end');
   });
   client.socket.on('error', function(err) {
