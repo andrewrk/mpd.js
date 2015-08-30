@@ -82,6 +82,10 @@ MpdClient.prototype.setupIdling = function() {
   self.emit('ready');
 };
 
+MpdClient.prototype.isConnected = function() {
+    return this.idling;
+};
+
 MpdClient.prototype.sendCommand = function(command, callback) {
   var self = this;
   callback = callback || noop.bind(this);
