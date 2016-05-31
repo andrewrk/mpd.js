@@ -45,6 +45,10 @@ MpdClient.connect = function(options) {
   return client;
 }
 
+MpdClient.disconnect = function() {
+  this.socket.destroy();
+}
+
 MpdClient.prototype.receive = function(data) {
   var m;
   this.buffer += data;

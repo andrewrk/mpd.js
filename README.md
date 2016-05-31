@@ -60,6 +60,10 @@ Returns an object.
 
 #### client.sendCommands(commandList, callback)
 
+#### client.disconnect()
+
+Disconnects client from MPD server.
+
 ### Events
 
 #### error(err)
