@@ -22,12 +22,16 @@ util.inherits(MpdClient, EventEmitter);
 
 var defaultConnectOpts = {
   host: 'localhost',
-  port: 6600
+  port: 6600,
+  password: ''
 }
+
+var password;
 
 MpdClient.connect = function(options) {
   options = options || defaultConnectOpts;
-  
+  password =  options.password;
+
   var client = new MpdClient();
   client.socket = net.connect(options, function() {
     client.emit('connect');
@@ -57,6 +61,15 @@ MpdClient.prototype.receive = function(data) {
       var err = new Error(str);
       this.handleMessage(err);
     } else if (OK_MPD.test(line)) {
+      if (password) {
+        this.sendWithCallback("password " + password, function(err, msg) {
+          if (err) {
+            throw new Error('Incorrect password');
+          } else {
+            console.log("Logged in with password");
+          }
+        });
+      }
       this.setupIdling();
     } else {
       this.handleMessage(null, msg);

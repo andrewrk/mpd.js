@@ -1,8 +1,9 @@
 var mpd = require('../'),
     cmd = mpd.cmd
 var client = mpd.connect({
-  port: 6600,
   host: 'localhost',
+  port: 6600,
+  password: ''
 });
 client.on('ready', function() {
   console.log("ready");
